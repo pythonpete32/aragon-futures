@@ -24,17 +24,25 @@ giving market makers the ability to go short on an asset allows them to hedge th
 8. Both **Alice** and **Bob** withdraw their purchases from the exchange
 9. **Alice** is happy. She made a profit and hedged her risk 
 10. **Bob** is happy he made a bigger profit than he would have simply buying at spot
+- User can place an order on the order book to buy or sell ant for DAI for delivery at one of three time slots, end of [day, week, month]
+- User can fill order on the order tok
+- User can cancel an unfilled order
+- User can send due balance to contract at expiry
+- User can withdraw purchase after order closes
+- User can claim deposit back if both parties fail to pay due balance
+- User can transfer contract to another address
+
+    ## Use Case
 
 ### Limitations
 
-can not expect to earn more than 100% ROI as counterparty has no incentive to fulfil obligation if the underlying price at expiry is greater than 50% of the
+- can not expect to earn more than 100% ROI as counterparty has no incentive to fulfil obligation if the underlying price at expiry is greater than 50% of the
+- As the future price is determined upfront, futures contracts are not fungible. In a later iteration this will be fixed by having settlement = spot at future expiry. This requires an oracle and this adds a bit of complexity
 
 ### Advantages
 
 in the final iteration 
 
-- Contracts are fungible allowing futures to be tradeable on secondary markets.
-- Creates an arbitrage opportunity to exploit price dislocations
 - Possible to have DAO own the smart contracts and introduce fees in exchange for maintaining a front end
 
 ## Version 0.1
