@@ -24,6 +24,8 @@ giving market makers the ability to go short on an asset allows them to hedge th
 8. Both **Alice** and **Bob** withdraw their purchases from the exchange
 9. **Alice** is happy. She made a profit and hedged her risk 
 10. **Bob** is happy he made a bigger profit than he would have simply buying at spot
+
+## Usecase
 - User can place an order on the order book to buy or sell ant for DAI for delivery at one of three time slots, end of [day, week, month]
 - User can fill order on the order tok
 - User can cancel an unfilled order
@@ -32,7 +34,6 @@ giving market makers the ability to go short on an asset allows them to hedge th
 - User can claim deposit back if both parties fail to pay due balance
 - User can transfer contract to another address
 
-    ## Use Case
 
 ### Limitations
 
