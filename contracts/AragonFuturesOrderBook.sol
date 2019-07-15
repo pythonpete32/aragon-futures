@@ -5,11 +5,13 @@ pragma solidity ^0.4.24;
   Contract closes one hour after expiry
 */
 
-import "@aragon/os/contracts/apps/AragonApp.sol";
+
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract AragonFuturesOrderBook is AragonApp {
+contract AragonFuturesOrderBook {
   using SafeMath for uint256;
+
+  // still need to add ANT and DAI tokens how do i do that
 
   struct Order {
     uint id;
@@ -33,11 +35,30 @@ contract AragonFuturesOrderBook is AragonApp {
   uint nextOrderId;
   address owner;
 
+  event CreateBuyOrder(address maker, uint buyAmmount, uint sellAmmount, uint expiry)
+
+  // the constructor needs to create refrence to ANT and DAI
   constructor () public {
     owner = msg.sender;
+    nextOrderId = 0;
   }
 
-  function createBuyOrder() external payable{}
+  function createBuyOrder(uint _buyAmmount, uint _sellAmmount, uint _deposit, uint _expiry) external payable{
+    // what require statements do i need here
+    Order storage newOrder = orderBook[nextOrderId];
+    orderBook[nextOrderId].id = nextOrderId;
+    orderBook[nextOrderId].state = State.OPEN;
+    orderBook[nextOrderId].buyer = msg.sender;
+    orderBook[nextOrderId].antAmmount = _buyAmmount;
+    orderBook[nextOrderId].daiAmmount = _sellAmmount;
+    orderBook[nextOrderId].antDeposit = _deposit;
+    orderBook[nextOrderId].expiryTime = now + _expiry;
+    orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600 // 1 hour
+
+    orders[msg.sender][nextOrderId] = newOrder;
+    emit CreateBuyOrder(msg.sender, _buyAmmount, _sellAmmount, _expiry);
+    nextOrderId ++;
+  }
 
   function createSellOrder() external payable{}
 
@@ -52,6 +73,8 @@ contract AragonFuturesOrderBook is AragonApp {
   function claimTokens() external payable{}
 
   function claimDeposit() external payable{}
+
+  function getOrders() external view {}
 
   function _transitionState() internal{}
 }
