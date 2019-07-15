@@ -1,4 +1,5 @@
 pragma solidity ^0.4.24;
+pragma experimental ABIEncoderV2;
 /*
   In this implimentation, futures contracts are not fungible.
   order creator selects expiry time
@@ -6,8 +7,11 @@ pragma solidity ^0.4.24;
   TODO:
       - add token pattern (DAI and ANT)
       - how am i going to impliment the state transition function?
-      - create a helper function that builds buy order so i can remove code duplication
-      - create a helper function that builds sell order so i can remove code duplication
+      - create a helper function that builds buy order to stay DRY
+      - create a helper function that builds sell order to stay DRY
+      - create modifiers to stay DRY
+      - getOrders(), cant itterate over keys in a mapping so i need to either
+                     have to add some more variables or change the how im structuring the data
 
 */
 
@@ -18,7 +22,10 @@ import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 contract AragonFuturesOrderBook {
   using SafeMath for uint256;
 
+  // im following the pattern ive seen elsewhere with these error messages
+  // i still dont know why this is better than just declaring the string in the require statement
   string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
+  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT"; // i need to call this something else, contract is confusing
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
@@ -96,7 +103,7 @@ contract AragonFuturesOrderBook {
     uint _sellAmmount,
     uint _deposit,
     uint _expiry
-    )
+  )
     external
     payable
     {
@@ -157,7 +164,22 @@ contract AragonFuturesOrderBook {
   /*
   *
   */
-  function transferContract()external {}
+  function transferContract(uint _id, address _to)external {
+    //how do i test for a null entry
+    require(orderBook[_id].buyer == msg.sender || orderBook[_id].buyer == msg.sender, ERROR_NOT_OWNER_OF_CONTRACT) ;
+    // remove key from orders of message sender
+    delete orders[msg.sender][_id];
+
+    // change key from msg.sender to _to
+    if(orderBook[_id].buyer == msg.sender){
+      orderBook[_id].buyer == _to;
+    }
+    if(orderBook[_id].seller == msg.sender){
+      orderBook[_id].seller == _to;
+    }
+
+    orders[_to][_id] = orderBook[_id];
+  }
 
   /*
   *
@@ -182,7 +204,9 @@ contract AragonFuturesOrderBook {
   /*
   *
   */
-  function getOrders() external view {}
+  function getOrders(address add) external view returns(Order[]){
+
+  }
 
   /*
   *
