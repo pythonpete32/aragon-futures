@@ -7,11 +7,13 @@ pragma solidity ^0.4.24;
 
 
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 contract AragonFuturesOrderBook {
   using SafeMath for uint256;
 
-  // still need to add ANT and DAI tokens how do i do that
+	ERC20 ANT;
+	ERC20 DAI;
 
   struct Order {
     uint id;
@@ -30,12 +32,13 @@ contract AragonFuturesOrderBook {
     OPEN, FILLED, EXPIRED, CLOSED
   }
 
+
   mapping (uint => Order) public orderBook;
   mapping (address => mapping (uint => Order)) public orders;
   uint nextOrderId;
   address owner;
 
-  event CreateBuyOrder(address maker, uint buyAmmount, uint sellAmmount, uint expiry)
+  event CreateOrder(address maker, uint buyAmmount, uint sellAmmount, uint expiry)
 
   // the constructor needs to create refrence to ANT and DAI
   constructor () public {
@@ -43,7 +46,7 @@ contract AragonFuturesOrderBook {
     nextOrderId = 0;
   }
 
-  function createBuyOrder(uint _buyAmmount, uint _sellAmmount, uint _deposit, uint _expiry) external payable{
+  function createOrder(uint _buyAmmount, uint _sellAmmount, uint _deposit, uint _expiry) external payable{
     // what require statements do i need here
     Order storage newOrder = orderBook[nextOrderId];
     orderBook[nextOrderId].id = nextOrderId;
@@ -56,11 +59,9 @@ contract AragonFuturesOrderBook {
     orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600 // 1 hour
 
     orders[msg.sender][nextOrderId] = newOrder;
-    emit CreateBuyOrder(msg.sender, _buyAmmount, _sellAmmount, _expiry);
+    emit CreateOrder(msg.sender, _buyAmmount, _sellAmmount, _expiry);
     nextOrderId ++;
   }
-
-  function createSellOrder() external payable{}
 
   function fillOrder() external payable{}
 
