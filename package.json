@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/pythonpete32/aragon-futures#readme",
   "dependencies": {
+    "fs": "0.0.1-security",
+    "truffle-hdwallet-provider": "^1.0.14",
     "zeppelin-solidity": "^1.12.0"
   },
   "devDependencies": {}

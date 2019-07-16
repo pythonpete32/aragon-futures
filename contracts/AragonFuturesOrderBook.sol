@@ -9,12 +9,14 @@ pragma experimental ABIEncoderV2;
 
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "../node_modules/zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 contract AragonFuturesOrderBook {
   using SafeMath for uint256;
+  using SafeERC20 for ERC20;
 
   string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
-  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT"; 
+  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT";
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
@@ -32,7 +34,7 @@ contract AragonFuturesOrderBook {
     uint expiryTime;
     uint closeTime;
   }
-	
+
   address owner;
 	ERC20 ANT;
 	ERC20 DAI;
