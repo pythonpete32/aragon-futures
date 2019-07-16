@@ -8,6 +8,7 @@ pragma experimental ABIEncoderV2;
 
 
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
@@ -20,6 +21,7 @@ contract AragonFuturesOrderBook {
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
+  string private constant ERROR_INCORRECT_DEPOSIT_VALUE = "INCORRECT_DEPOSIT_VALUE";
 
 
   struct Order {
@@ -36,8 +38,8 @@ contract AragonFuturesOrderBook {
   }
 
   address owner;
-	ERC20 ANT;
-	ERC20 DAI;
+  ERC20 ANT;
+  ERC20 DAI;
   enum State {OPEN, FILLED, EXPIRED}
   mapping (uint => Order) public orderBook;
   mapping (address => mapping (uint => Order)) public orders;
@@ -51,8 +53,8 @@ contract AragonFuturesOrderBook {
   constructor () public {
     owner = msg.sender;
     nextOrderId = 0;
-		ANT = ERC20(0x0d5263b7969144a852d58505602f630f9b20239d); // rinkeby
-		DAI = ERC20(0x0527e400502d0cb4f214dd0d2f2a323fc88ff924); // rinkeby
+		ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby
+		DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby
   }
 
   /*
@@ -67,8 +69,10 @@ contract AragonFuturesOrderBook {
     external
     payable
     {
-    // require msg.sender has enough DAI
-    // require deposit is correct ammount
+    require(DAI.balanceOf(msg.sender) > _sellAmmount, ERROR_INSUFFICIENT_FUNDS); // require msg.sender has enough DAI
+    require(_deposit == _buyAmmount.div(2), ERROR_INCORRECT_DEPOSIT_VALUE);
+
+    DAI.safeTransferFrom(msg.sender, this, _deposit);
     Order storage newOrder = orderBook[nextOrderId];
     orderBook[nextOrderId].id = nextOrderId;
     orderBook[nextOrderId].state = State.OPEN;
@@ -79,7 +83,6 @@ contract AragonFuturesOrderBook {
     orderBook[nextOrderId].expiryTime = now + _expiry;
     orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600; // 1 hour
 
-    this._deposit(_deposit);
     orders[msg.sender][nextOrderId] = newOrder;
     emit CreateBuyOrder(nextOrderId, msg.sender, _buyAmmount, _sellAmmount, _expiry);
     nextOrderId ++;
@@ -97,20 +100,21 @@ contract AragonFuturesOrderBook {
     external
     payable
     {
-    // require msg.sender has enough ANT
-    // require deposit is correct ammount
+    require(ANT.balanceOf(msg.sender) > _sellAmmount, ERROR_INSUFFICIENT_FUNDS); // require msg.sender has enough ANT
+    require(_deposit == _sellAmmount.div(2), ERROR_INCORRECT_DEPOSIT_VALUE);
+
+    ANT.safeTransferFrom(msg.sender, this, _deposit);
     Order storage newOrder = orderBook[nextOrderId];
     orderBook[nextOrderId].id = nextOrderId;
     orderBook[nextOrderId].state = State.OPEN;
     orderBook[nextOrderId].seller = msg.sender;
-    orderBook[nextOrderId].antAmmount = _buyAmmount;
-    orderBook[nextOrderId].daiAmmount = _sellAmmount;
+    orderBook[nextOrderId].daiAmmount = _buyAmmount;
+    orderBook[nextOrderId].antAmmount = _sellAmmount;
     orderBook[nextOrderId].antDeposit = _deposit;
     orderBook[nextOrderId].expiryTime = now + _expiry;
     orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600; // 1 hour
-
-    this._deposit(_deposit);
     orders[msg.sender][nextOrderId] = newOrder;
+    
     emit CreateSellOrder(nextOrderId, msg.sender, _buyAmmount, _sellAmmount, _expiry);
     nextOrderId ++;
   }
@@ -119,16 +123,17 @@ contract AragonFuturesOrderBook {
   *
   */
   function fillBuyOrder(uint _orderId, uint _deposit) external payable{
-    // require order exists
-    // require order OPEN
-    // require now < expiry
-    // require deposit is correct ammount
-    // require msg.sender has enough ANT
+    require(orderBook[_orderId].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
+    require(orderBook[_orderId].state == State.OPEN, ERROR_ORDER_IS_NOT_OPEN); // require order OPEN
+    require(orderBook[_orderId].expiryTime > now, ERROR_ORDER_HAS_EXPIRED); // require now < expiry
+    require(orderBook[_orderId].antAmmount.div(2) == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
+    require(orderBook[_orderId].antAmmount < ANT.balanceOf(msg.sender), ERROR_INSUFFICIENT_FUNDS);// require msg.sender has enough DAI
+    
+    ANT.safeTransferFrom(msg.sender, this, _deposit);
     Order storage fillOrder = orderBook[_orderId];
     fillOrder.seller = msg.sender;
     fillOrder.antDeposit = _deposit;
 
-    this._deposit(_deposit);
     orders[msg.sender][nextOrderId] = fillOrder;
     emit FillBuyOrder(_orderId, msg.sender);
   }
@@ -137,16 +142,17 @@ contract AragonFuturesOrderBook {
   *
   */
   function fillSellOrder(uint _orderId, uint _deposit) external payable{
-    // require order exists
-    // require order OPEN
-    // require now < expiry
-    // require deposit is correct ammount
-    // require msg.sender has enough ANT
+    require(orderBook[_orderId].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
+    require(orderBook[_orderId].state == State.OPEN, ERROR_ORDER_IS_NOT_OPEN); // require order OPEN
+    require(orderBook[_orderId].expiryTime > now, ERROR_ORDER_HAS_EXPIRED); // require now < expiry
+    require(orderBook[_orderId].daiAmmount.div(2) == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
+    require(orderBook[_orderId].daiAmmount < DAI.balanceOf(msg.sender), ERROR_INSUFFICIENT_FUNDS);// require msg.sender has enough DAI
+    
+    DAI.safeTransferFrom(msg.sender, this, _deposit);
     Order storage fillOrder = orderBook[_orderId];
-    fillOrder.buyer = msg.sender;
-    fillOrder.daiDeposit = _deposit;
+    fillOrder.seller = msg.sender;
+    fillOrder.antDeposit = _deposit;
 
-    this._deposit(_deposit);
     orders[msg.sender][nextOrderId] = fillOrder;
     emit FillSellOrder(_orderId, msg.sender);
   }
@@ -155,8 +161,9 @@ contract AragonFuturesOrderBook {
   *
   */
   function transferContract(uint _id, address _to)external {
-    //how do i test for a null entry
+    require(orderBook[_id].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
     require(orderBook[_id].buyer == msg.sender || orderBook[_id].buyer == msg.sender, ERROR_NOT_OWNER_OF_CONTRACT) ;
+    
     // remove key from orders of message sender
     delete orders[msg.sender][_id];
 
@@ -167,7 +174,6 @@ contract AragonFuturesOrderBook {
     if(orderBook[_id].seller == msg.sender){
       orderBook[_id].seller == _to;
     }
-
     orders[_to][_id] = orderBook[_id];
   }
 
@@ -191,20 +197,10 @@ contract AragonFuturesOrderBook {
   */
   function claimDeposit() external payable{}
 
-  /*
-  *
-  */
-  function getOrders(address add) external view returns(Order[]){
-
-  }
 
   /*
   *
   */
   function _transitionState() internal{}
 
-  /*
-  *
-  */
-  function _deposit(uint _ammount){}
 }
