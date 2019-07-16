@@ -25,7 +25,9 @@ contract AragonFuturesOrderBook {
   string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
   string private constant ERROR_ORDER_CLOSED = "ORDER_CLOSED";
+  string private constant ERROR_ORDER_CANCLED = "ORDER_CANCLED";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
+  string private constant ERROR_CANNOT_TRANSITION_TO_THIS_STATE = "CANNOT_TRANSITION_TO_THIS_STATE";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
   string private constant ERROR_INCORRECT_DEPOSIT_VALUE = "INCORRECT_DEPOSIT_VALUE";
   string private constant ERROR_PAYMENT_WINDOW_NOT_REACHED = "PAYMENT_WINDOW_NOT_REACHED";
@@ -44,7 +46,7 @@ contract AragonFuturesOrderBook {
     uint closeTime;
   }
 
-  enum State {OPEN, FILLED, EXPIRED, CANCELED}
+  enum State {OPEN, FILLED, EXPIRED, CLOSED, CANCELED}
   enum Type {BUY, SELL}
   ERC20 ANT;
   ERC20 DAI;
@@ -131,7 +133,7 @@ contract AragonFuturesOrderBook {
   function fillBuyOrder(uint _orderId, uint _deposit) external payable{
     require(orderBook[_orderId].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
     require(orderBook[_orderId].state == State.OPEN, ERROR_ORDER_IS_NOT_OPEN); // require order OPEN
-    require(orderBook[_orderId].expiryTime > now, ERROR_ORDER_HAS_EXPIRED); // require now < expiry
+    require(orderBook[_orderId].closeTime > now, ERROR_ORDER_CLOSED); // require now < closed
     require(orderBook[_orderId].antAmmount.div(2) == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
     require(orderBook[_orderId].antAmmount < ANT.balanceOf(msg.sender), ERROR_INSUFFICIENT_FUNDS);// require msg.sender has enough DAI
     
@@ -139,6 +141,8 @@ contract AragonFuturesOrderBook {
     Order storage fillOrder = orderBook[_orderId];
     fillOrder.seller = msg.sender;
     fillOrder.antDeposit = _deposit;
+
+// call state transition function
 
     orders[msg.sender][nextOrderId] = fillOrder;
     emit FillBuyOrder(_orderId, msg.sender);
@@ -150,7 +154,7 @@ contract AragonFuturesOrderBook {
   function fillSellOrder(uint _orderId, uint _deposit) external payable{
     require(orderBook[_orderId].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
     require(orderBook[_orderId].state == State.OPEN, ERROR_ORDER_IS_NOT_OPEN); // require order OPEN
-    require(orderBook[_orderId].expiryTime > now, ERROR_ORDER_HAS_EXPIRED); // require now < expiry
+    require(orderBook[_orderId].closeTime > now, ERROR_ORDER_CLOSED); // require now < close
     require(orderBook[_orderId].daiAmmount.div(2) == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
     require(orderBook[_orderId].daiAmmount < DAI.balanceOf(msg.sender), ERROR_INSUFFICIENT_FUNDS);// require msg.sender has enough DAI
     
@@ -158,6 +162,8 @@ contract AragonFuturesOrderBook {
     Order storage fillOrder = orderBook[_orderId];
     fillOrder.seller = msg.sender;
     fillOrder.antDeposit = _deposit;
+    
+    // call state transition function
 
     orders[msg.sender][nextOrderId] = fillOrder;
     emit FillSellOrder(_orderId, msg.sender);
@@ -231,6 +237,34 @@ contract AragonFuturesOrderBook {
   /*
   *
   */
-  function _transitionState() internal{}
+  function _transitionState(uint _orderId, State _state) internal{
+      // test if contract is now expired or closed, if it is change state.
+      // i dont think this is the right way to do this. if one of these require
+      // statements fail, will the transaction revert and undo these state changes?
+      if(orderBook[_orderId].expiryTime > now) {orderBook[_orderId].state = State.EXPIRED;}
+      if(orderBook[_orderId].closeTime > now) {orderBook[_orderId].state = State.CLOSED;}
+      
+      require(orderBook[_orderId].state != State.CLOSED, ERROR_ORDER_CLOSED);
+      require(orderBook[_orderId].state != State.CANCELED, ERROR_ORDER_CANCLED);
+      require(orderBook[_orderId].state != State.OPEN, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
+      
+      // test if contract is now expired or closed, if it is 
+      
+      
+      if(_state == State.FILLED){
+          if(orderBook[_orderId].buyer != 0 && orderBook[_orderId].seller != 0){
+              orderBook[_orderId].state = State.FILLED;
+          }
+      }
+      
+      if(_state == State.CANCELED){
+          require(orderBook[_orderId].state != State.FILLED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
+          require(orderBook[_orderId].state != State.EXPIRED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
+          require(orderBook[_orderId].state != State.CLOSED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
+          
+          orderBook[_orderId].state = State.FILLED;
+      }
+      
+  }
 
 }
