@@ -2,17 +2,8 @@ pragma solidity ^0.4.24;
 pragma experimental ABIEncoderV2;
 /*
   In this implimentation, futures contracts are not fungible.
-  order creator selects expiry time
-  Contract closes one hour after expiry
-  TODO:
-      - add token pattern (DAI and ANT)
-      - how am i going to impliment the state transition function?
-      - create a helper function that builds buy order to stay DRY
-      - create a helper function that builds sell order to stay DRY
-      - create modifiers to stay DRY
-      - getOrders(), cant itterate over keys in a mapping so i need to either
-                     have to add some more variables or change the how im structuring the data
-
+  - order creator selects expiry time
+  - Contract closes one hour after expiry
 */
 
 
@@ -22,16 +13,12 @@ import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 contract AragonFuturesOrderBook {
   using SafeMath for uint256;
 
-  // im following the pattern ive seen elsewhere with these error messages
-  // i still dont know why this is better than just declaring the string in the require statement
   string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
-  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT"; // i need to call this something else, contract is confusing
+  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT"; 
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
 
-	ERC20 ANT;
-	ERC20 DAI;
 
   struct Order {
     uint id;
@@ -45,24 +32,25 @@ contract AragonFuturesOrderBook {
     uint expiryTime;
     uint closeTime;
   }
-
+	
+  address owner;
+	ERC20 ANT;
+	ERC20 DAI;
   enum State {OPEN, FILLED, EXPIRED}
-
-
   mapping (uint => Order) public orderBook;
   mapping (address => mapping (uint => Order)) public orders;
   uint nextOrderId;
-  address owner;
 
   event CreateBuyOrder(uint id, address maker, uint buyAmmount, uint sellAmmount, uint expiry);
   event CreateSellOrder(uint id, address maker, uint buyAmmount, uint sellAmmount, uint expiry);
   event FillBuyOrder(uint id, address taker);
   event FillSellOrder(uint id, address taker);
 
-  // the constructor needs to create refrence to ANT and DAI
   constructor () public {
     owner = msg.sender;
     nextOrderId = 0;
+		ANT = ERC20(0x0d5263b7969144a852d58505602f630f9b20239d); // rinkeby
+		DAI = ERC20(0x0527e400502d0cb4f214dd0d2f2a323fc88ff924); // rinkeby
   }
 
   /*
