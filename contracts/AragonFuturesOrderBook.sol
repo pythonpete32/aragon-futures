@@ -238,18 +238,9 @@ contract AragonFuturesOrderBook {
   *
   */
   function _transitionState(uint _orderId, State _state) internal{
-      // test if contract is now expired or closed, if it is change state.
-      // i dont think this is the right way to do this. if one of these require
-      // statements fail, will the transaction revert and undo these state changes?
-      if(orderBook[_orderId].expiryTime > now) {orderBook[_orderId].state = State.EXPIRED;}
-      if(orderBook[_orderId].closeTime > now) {orderBook[_orderId].state = State.CLOSED;}
-      
       require(orderBook[_orderId].state != State.CLOSED, ERROR_ORDER_CLOSED);
       require(orderBook[_orderId].state != State.CANCELED, ERROR_ORDER_CANCLED);
       require(orderBook[_orderId].state != State.OPEN, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
-      
-      // test if contract is now expired or closed, if it is 
-      
       
       if(_state == State.FILLED){
           if(orderBook[_orderId].buyer != 0 && orderBook[_orderId].seller != 0){
@@ -260,11 +251,18 @@ contract AragonFuturesOrderBook {
       if(_state == State.CANCELED){
           require(orderBook[_orderId].state != State.FILLED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
           require(orderBook[_orderId].state != State.EXPIRED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
-          require(orderBook[_orderId].state != State.CLOSED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
+    	    require(orderBook[_orderId].state != State.CLOSED, ERROR_CANNOT_TRANSITION_TO_THIS_STATE);
           
           orderBook[_orderId].state = State.FILLED;
       }
-      
   }
+
+	/*
+	* this is called before state tramsition to check if the contract has expired or ended
+	* maybe these states are not even nessasary
+	*/
+  function _checkTime(uint _orderId){
+	  
+	}
 
 }
