@@ -4,16 +4,11 @@ pragma experimental ABIEncoderV2;
   In this implimentation, futures contracts are not fungible.
   - order creator selects expiry time
   - Contract closes one hour after expiry
-
-  TODO:
-  - impliment state transition function
-        - state transition function should run after every interaction and update the state of the order
-  - refactor buy/sell & fillBuy/fillSell so there are only 2 functions instead of 4
-  - refactor require functions as modifiers
 */
 
 
 import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20Basic.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
@@ -21,14 +16,12 @@ contract AragonFuturesOrderBook {
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
 
-  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT";
   string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
+  string private constant ERROR_NOT_OWNER_OF_CONTRACT = "NOT_OWNER_OF_CONTRACT";
   string private constant ERROR_ORDER_IS_NOT_OPEN = "ORDER_IS_NOT_OPEN";
-  string private constant ERROR_ORDER_CLOSED = "ORDER_CLOSED";
   string private constant ERROR_ORDER_HAS_EXPIRED = "ORDER_HAS_EXPIRED";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
   string private constant ERROR_INCORRECT_DEPOSIT_VALUE = "INCORRECT_DEPOSIT_VALUE";
-  string private constant ERROR_PAYMENT_WINDOW_NOT_REACHED = "PAYMENT_WINDOW_NOT_REACHED";
 
 
   struct Order {
@@ -44,10 +37,10 @@ contract AragonFuturesOrderBook {
     uint closeTime;
   }
 
-  enum State {OPEN, FILLED, EXPIRED, CANCELED}
-  enum Type {BUY, SELL}
+  address owner;
   ERC20 ANT;
   ERC20 DAI;
+  enum State {OPEN, FILLED, EXPIRED}
   mapping (uint => Order) public orderBook;
   mapping (address => mapping (uint => Order)) public orders;
   uint nextOrderId;
@@ -58,6 +51,7 @@ contract AragonFuturesOrderBook {
   event FillSellOrder(uint id, address taker);
 
   constructor () public {
+    owner = msg.sender;
     nextOrderId = 0;
 		ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby
 		DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby
@@ -81,13 +75,13 @@ contract AragonFuturesOrderBook {
     DAI.safeTransferFrom(msg.sender, this, _deposit);
     Order storage newOrder = orderBook[nextOrderId];
     orderBook[nextOrderId].id = nextOrderId;
-    orderBook[nextOrderId].state = State.OPEN;
-    orderBook[nextOrderId].buyer = msg.sender;
-    orderBook[nextOrderId].antAmmount = _buyAmmount;
-    orderBook[nextOrderId].daiAmmount = _sellAmmount;
-    orderBook[nextOrderId].daiDeposit = _deposit;
-    orderBook[nextOrderId].expiryTime = now + _expiry;
-    orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600; // 1 hour
+    //orderBook[nextOrderId].state = State.OPEN;
+    //orderBook[nextOrderId].buyer = msg.sender;
+    //orderBook[nextOrderId].antAmmount = _buyAmmount;
+    //orderBook[nextOrderId].daiAmmount = _sellAmmount;
+    //orderBook[nextOrderId].daiDeposit = _deposit;
+    //orderBook[nextOrderId].expiryTime = now + _expiry;
+    //orderBook[nextOrderId].closeTime = orderBook[nextOrderId].expiryTime + 3600; // 1 hour
 
     orders[msg.sender][nextOrderId] = newOrder;
     emit CreateBuyOrder(nextOrderId, msg.sender, _buyAmmount, _sellAmmount, _expiry);
@@ -168,7 +162,7 @@ contract AragonFuturesOrderBook {
   */
   function transferContract(uint _id, address _to)external {
     require(orderBook[_id].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
-    require(orderBook[_id].buyer == msg.sender || orderBook[_id].buyer == msg.sender, ERROR_NOT_OWNER_OF_CONTRACT);
+    require(orderBook[_id].buyer == msg.sender || orderBook[_id].buyer == msg.sender, ERROR_NOT_OWNER_OF_CONTRACT) ;
 
     // remove key from orders of message sender
     delete orders[msg.sender][_id];
@@ -186,36 +180,12 @@ contract AragonFuturesOrderBook {
   /*
   *
   */
-  function cancelOrder(uint _id) external{
-      require(orders[msg.sender][_id].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST);
-
-      // call state transition function
-  }
+  function cancelOrder() external{}
 
   /*
   *
   */
-  function completeOrder(uint _orderId, uint _deposit) external payable{
-    require(orderBook[_orderId].buyer == msg.sender || orderBook[_orderId].buyer == msg.sender, ERROR_NOT_OWNER_OF_CONTRACT);
-    require(orderBook[_orderId].expiryTime != 0, ERROR_ORDER_DOSE_NOT_EXIST); // require order exists, is there a better test?
-    require(orderBook[_orderId].expiryTime > now, ERROR_PAYMENT_WINDOW_NOT_REACHED); // require order exists, is there a better test?
-    require(orderBook[_orderId].expiryTime < orderBook[_orderId].closeTime, ERROR_ORDER_CLOSED); // require order exists, is there a better test?
-
-
-    if(orderBook[_orderId].buyer == msg.sender){
-        require(orderBook[_orderId].daiDeposit == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
-        DAI.safeTransferFrom(msg.sender, this, _deposit);
-
-        // call state transition function
-    }
-
-    if(orderBook[_orderId].seller == msg.sender){
-        require(orderBook[_orderId].antDeposit == _deposit, ERROR_INCORRECT_DEPOSIT_VALUE); // require deposit is correct ammount
-        DAI.safeTransferFrom(msg.sender, this, _deposit);
-
-        // call state transition function
-    }
-  }
+  function completeOrder() external payable{}
 
   /*
   *

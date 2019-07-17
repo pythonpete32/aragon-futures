@@ -7,6 +7,9 @@
 
 module.exports = {
 
+  plugins: ["truffle-security"],
+
+
   networks: {
      rinkeby: {
        provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/4a8d55c7173e40fe9d55196a6c799864`),
