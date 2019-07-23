@@ -54,8 +54,8 @@ contract AragonFuturesOrderBook {
   event TransferOrder(uint id, address sender, address reciever);
 
   constructor () public {
-	ANT = ERC20(0x370587127bBC6B15a928cFc3916295Eb7940A9BF); // ganache
-	DAI = ERC20(0xA16Dca8E28e8054C766A9D21c967C6ee6D822964); // ganache
+	ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby
+	DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby
     startTime = 3600;
     endTime = 3600;
     closeTime = endTime + startTime;
@@ -141,7 +141,7 @@ contract AragonFuturesOrderBook {
   *
   */
   function fillSellOrder
-    (uint _orderId, uint _deposit)
+    (uint _orderId)
     external 
     payable
     timedTransition(_orderId)
@@ -222,9 +222,9 @@ contract AragonFuturesOrderBook {
       }
     
       if (globalOrders[_orderId].seller == msg.sender){
-            uint deposit = globalOrders[_orderId].antAmmount.div(2);
-            require(ANT.balanceOf(msg.sender) > deposit, ERROR_INSUFFICIENT_FUNDS);
-            ANT.transferFrom(msg.sender, address(this), deposit);
+            uint deposit2 = globalOrders[_orderId].antAmmount.div(2);
+            require(ANT.balanceOf(msg.sender) > deposit2, ERROR_INSUFFICIENT_FUNDS);
+            ANT.transferFrom(msg.sender, address(this), deposit2);
             globalOrders[_orderId].sellerPaid = true;
       }
     }
@@ -232,7 +232,7 @@ contract AragonFuturesOrderBook {
   /*
   * this function looks horrendous, i will have to refactor this at a later stage, but for now as long as it works
   * ill write the unit tests and refactor later
-  */
+  *
   function withdrawPurchase
       (uint _orderId) 
       external 
@@ -284,6 +284,7 @@ contract AragonFuturesOrderBook {
               }
           }
       }
+      */
 
   /*
   *

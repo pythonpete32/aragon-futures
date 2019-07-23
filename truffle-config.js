@@ -14,7 +14,7 @@ module.exports = {
      rinkeby: {
        provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/4a8d55c7173e40fe9d55196a6c799864`),
        network_id: 4,       // Ropsten's id
-       gas: 4500000,        // Ropsten has a lower block limit than mainnet
+       gas: 4500000,        // Ropsten has a lower block limit than mainnet 4500000
        confirmations: 0,    // # of confs to wait between deployments. (default: 0)
        timeoutBlocks: 50,  // # of blocks before a deployment times out  (minimum/default: 50)
        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
