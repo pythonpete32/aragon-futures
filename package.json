@@ -1,21 +1,21 @@
 {
-  "name": "aragon-futures",
+  "name": "tokensWallet",
   "version": "0.0.1",
-  "description": "# Aragon Futures",
+  "description": "# Tokens for Aragon Futures",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pythonpete32/aragon-futures.git"
+    "url": ""
   },
   "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/pythonpete32/aragon-futures/issues"
   },
-  "homepage": "https://github.com/pythonpete32/aragon-futures#readme",
+  "homepage": "",
   "dependencies": {
     "fs": "0.0.1-security",
     "truffle-hdwallet-provider": "^1.0.14",
