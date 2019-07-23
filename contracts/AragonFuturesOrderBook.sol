@@ -14,6 +14,7 @@ contract AragonFuturesOrderBook {
   string private constant ERROR_CANNOT_CALL_THIS_FUNCTION_IN_THIS_STATE = "CANNOT_CALL_THIS_FUNCTION_IN_THIS_STATE";
   string private constant ERROR_TRADING_HAS_STOPPED = "TRADING_HAS_STOPPED";
   string private constant ERROR_YOU_DO_NOT_OWN_THE_ORDER = "YOU_DO_NOT_OWN_THE_ORDER";
+  string private constant ERROR_YOU_DEFAULTED = "YOU_DEFAULTED";
 
   enum State {
       OPEN,       // order is on the order book, with deposit paid, waiting to be filled
@@ -229,7 +230,8 @@ contract AragonFuturesOrderBook {
     }
 
   /*
-  *
+  * this function looks horrendous, i will have to refactor this at a later stage, but for now as long as it works
+  * ill write the unit tests and refactor later
   */
   function withdrawPurchase
       (uint _orderId) 
@@ -250,24 +252,57 @@ contract AragonFuturesOrderBook {
           // 2. buyer defaults and the seller collects both deposits
           // 3. seller defaults and buyer collects both deposits
           // 4. both default and collect their deposit back
-          if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == true){
-              
+          if(msg.sender == globalOrders[_orderId].buyer){
+              if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == true){
+                  ANT.transfer(msg.sender, globalOrders[_orderId].antAmmount); 
+              }
+              if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == false){
+                  ANT.transfer(msg.sender, globalOrders[_orderId].antAmmount.div(2)); 
+                  DAI.transfer(msg.sender, globalOrders[_orderId].daiAmmount.div(2));
+              }
+              if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == true){
+                  revert(ERROR_YOU_DEFAULTED);
+              }
+              if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == false){
+                  DAI.transfer(msg.sender, globalOrders[_orderId].daiAmmount.div(2));              
+              }
+          } 
+          
+          if(msg.sender == globalOrders[_orderId].seller){
+              if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == true){
+                  DAI.transfer(msg.sender, globalOrders[_orderId].daiAmmount);              
+              }
+              if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == false){
+                  ANT.transfer(msg.sender, globalOrders[_orderId].antAmmount.div(2)); 
+                  DAI.transfer(msg.sender, globalOrders[_orderId].daiAmmount.div(2));              
+              }
+              if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == true){
+                  revert(ERROR_YOU_DEFAULTED);              
+              }
+              if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == false){
+                  ANT.transfer(msg.sender, globalOrders[_orderId].antAmmount.div(2));               
+              }
           }
-          if(globalOrders[_orderId].buyerPaid == true && globalOrders[_orderId].sellerPaid == false){
-              
-          }
-          if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == true){
-              
-          }
-          if(globalOrders[_orderId].buyerPaid == false && globalOrders[_orderId].sellerPaid == false){
-              
-          }          
       }
 
   /*
   *
   */
-  function withdrawDeposit() external payable{}
+  function withdrawDeposit(uint _orderId) external payable atState(_orderId, State.CANCELED){
+        require(
+            globalOrders[_orderId].buyer == msg.sender 
+            || 
+            globalOrders[_orderId].buyer == msg.sender, 
+            ERROR_YOU_DO_NOT_OWN_THE_ORDER
+        );
+        
+        if (msg.sender == globalOrders[_orderId].buyer){
+            DAI.transfer(msg.sender, globalOrders[_orderId].daiAmmount.div(2));
+        }
+        if (msg.sender == globalOrders[_orderId].seller){
+            ANT.transfer(msg.sender, globalOrders[_orderId].daiAmmount.div(2));
+        }
+  }
 
   /*
   *
