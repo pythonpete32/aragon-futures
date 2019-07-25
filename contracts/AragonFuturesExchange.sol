@@ -5,7 +5,7 @@ import "../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
-contract AragonFuturesOrderBook {
+contract AragonFuturesExchange {
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
 
@@ -43,7 +43,7 @@ contract AragonFuturesOrderBook {
 
   uint private nextOrderId;
   uint public startTime;  // the time when trading starts
-  uint public endTime;    // the time when trading stops
+  uint public endTime;    // the time when trading stops n 
   uint public closeTime;  // the time buyers and sellers must fulfill their obligation by
 
 
@@ -53,12 +53,12 @@ contract AragonFuturesOrderBook {
   event FillSellOrder(uint id, address taker);
   event TransferOrder(uint id, address sender, address reciever);
 
-  constructor () public {
-	ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby
-	DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby
-    startTime = 3600;
-    endTime = 3600;
-    closeTime = endTime + startTime;
+  constructor (uint _end, uint _close) public {
+	ANT = ERC20(0x370587127bBC6B15a928cFc3916295Eb7940A9BF); // rinkeby 0x0D5263B7969144a852D58505602f630f9b20239D // rpc 0x370587127bBC6B15a928cFc3916295Eb7940A9BF
+	DAI = ERC20(0xA16Dca8E28e8054C766A9D21c967C6ee6D822964); // rinkeby 0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924 // rpc 0xA16Dca8E28e8054C766A9D21c967C6ee6D822964
+    startTime = now;
+    endTime = startTime + (_end.mul(60));
+    closeTime = endTime + (_close.mul(60));
     nextOrderId = 0;
 
   }
@@ -179,12 +179,12 @@ contract AragonFuturesOrderBook {
     Order memory order = globalOrders[_orderId];
     require(order.buyer == msg.sender || order.seller == msg.sender, ERROR_YOU_DO_NOT_OWN_THE_ORDER);
     if (order.buyer == msg.sender){
-      order.buyer = _to;
+      globalOrders[_orderId].buyer = _to;
       emit TransferOrder(_orderId, msg.sender, _to);
     }
 
     if (order.seller == msg.sender){
-      order.seller = _to;
+      globalOrders[_orderId].seller = _to;
       emit TransferOrder(_orderId, msg.sender, _to);
     }
   }

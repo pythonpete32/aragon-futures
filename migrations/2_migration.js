@@ -1,5 +1,7 @@
-const OrderBook = artifacts.require("AragonFuturesOrderBook");
+const exchange = artifacts.require("AragonFuturesExchange");
+const end = 180; // seconds from now
+const close = 180; // seconds from end
 
 module.exports = function(deployer) {
-  deployer.deploy(OrderBook, ); //{gas: 9000000}
+  deployer.deploy(exchange, end, close); 
 };

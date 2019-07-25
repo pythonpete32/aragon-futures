@@ -18,7 +18,7 @@ giving market makers the ability to go short on an asset allows them to hedge th
 2. She immediately places a sell order for 1,000 ANT at 11 DAI (expiring on the 1st of August) on the Aragon futures exchange. depositing 500 ANT as collateral
 3. **Bob** sees the futures order, even though the price is 10% higher than the spot price (today's price), he thinks the price will be much higher by 1st August, he doesn't want to lock up all his DAI buying at spot, so he is happy to buy the futures contract.
 4. **Bob** buys the 1,000 ANT futures contracts depositing 5,500 DAI as collateral
-5. At this point, **Alice** has locked in 1,000 DAI profit and she has 500 ANT inventory to trade with. **Bob** has locked in a price of 11 DAI and has 5,500 DAI to trade with
+5. At this point, **Alice** has locked in 1,000 DAI profit and she has 500 ANT inventory to trade with. **Bob** has locked in a price of 11 DAI and has 5,500 DAI to trade with **
 6. On the 1st of August, the spot price of ANT is 14 DAI. The value of the **Alice** ANT is now 14,000 DAI however she has promised to sell it to **Bob** at 11,000 DAI. She now has 12 hours to send the rest of the ANT to futures exchange contract or she will forfeit the collateral and the claim on the DAI. She sends the remaining 500 ANT.
 7. **Bob** sends 5,500 DAI to fulfil his obligation. During the month he made an additional 3,000 DAI trading with the this 5,500 DAI which offset the 1,000 DAI premium he paid for the futures contract
 8. Both **Alice** and **Bob** withdraw their purchases from the exchange
