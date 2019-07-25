@@ -54,11 +54,11 @@ contract AragonFuturesExchange {
   event TransferOrder(uint id, address sender, address reciever);
 
   constructor (uint _end, uint _close) public {
-	ANT = ERC20(0x370587127bBC6B15a928cFc3916295Eb7940A9BF); // rinkeby 0x0D5263B7969144a852D58505602f630f9b20239D // rpc 0x370587127bBC6B15a928cFc3916295Eb7940A9BF
-	DAI = ERC20(0xA16Dca8E28e8054C766A9D21c967C6ee6D822964); // rinkeby 0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924 // rpc 0xA16Dca8E28e8054C766A9D21c967C6ee6D822964
+	ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby 0x0D5263B7969144a852D58505602f630f9b20239D // rpc 0x370587127bBC6B15a928cFc3916295Eb7940A9BF
+	DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby 0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924 // rpc 0xA16Dca8E28e8054C766A9D21c967C6ee6D822964
     startTime = now;
-    endTime = startTime + (2 minutes);
-    closeTime = endTime + (2 minutes);
+    endTime = startTime + (24 hours);  // <-- use args after testing
+    closeTime = endTime + (24 hours);  // <-- use args after testing
     nextOrderId = 0;
 
   }
