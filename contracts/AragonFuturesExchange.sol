@@ -43,7 +43,7 @@ contract AragonFuturesExchange {
 
   uint private nextOrderId;
   uint public startTime;  // the time when trading starts
-  uint public endTime;    // the time when trading stops n 
+  uint public endTime;    // the time when trading stops n
   uint public closeTime;  // the time buyers and sellers must fulfill their obligation by
 
 
@@ -57,14 +57,43 @@ contract AragonFuturesExchange {
 	ANT = ERC20(0x370587127bBC6B15a928cFc3916295Eb7940A9BF); // rinkeby 0x0D5263B7969144a852D58505602f630f9b20239D // rpc 0x370587127bBC6B15a928cFc3916295Eb7940A9BF
 	DAI = ERC20(0xA16Dca8E28e8054C766A9D21c967C6ee6D822964); // rinkeby 0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924 // rpc 0xA16Dca8E28e8054C766A9D21c967C6ee6D822964
     startTime = now;
-    endTime = startTime + (_end.mul(60));
-    closeTime = endTime + (_close.mul(60));
+    endTime = startTime + (2 minutes);
+    closeTime = endTime + (2 minutes);
     nextOrderId = 0;
 
   }
 
 
   /***** external functions *****/
+
+  /*
+  * @notice returns the state of the exchange (open, settling, closed) and the time left
+  */
+  function stageTime() external view returns (string memory, string memory, int) {
+    string memory stage;
+    string memory isFinished;
+    int time;
+
+    if (now < endTime){
+      stage = 'open';
+      time = int(endTime) - int(now);
+      isFinished = 'time left:';
+    }
+
+    if (now > endTime && now < closeTime){
+      stage = 'settlement period';
+      time = int(closeTime) - int(now);
+      isFinished = 'time left:';
+    }
+
+    if (now > closeTime){
+      stage = 'closed';
+      time = int(now) - int(closeTime);
+      isFinished = 'time Since Closed:';
+    }
+
+    return(stage, isFinished, time);
+  }
 
 
   /*
@@ -93,7 +122,6 @@ contract AragonFuturesExchange {
     emit CreateBuyOrder(nextOrderId, msg.sender, _buyAmmount, _buyAmmount.mul(_rate));
     nextOrderId++;
   }
-
 
   /*
   *  @notice user can create a sell order. 50% of this deposited as collatoral.
@@ -201,7 +229,7 @@ contract AragonFuturesExchange {
     Order memory order = globalOrders[_orderId];
     require(order.buyer == msg.sender || order.seller == msg.sender, ERROR_YOU_DO_NOT_OWN_THE_ORDER);
 
-    order.state = State.CANCELED;
+    globalOrders[_orderId].state = State.CANCELED;
   }
 
   /*
@@ -222,14 +250,14 @@ contract AragonFuturesExchange {
       uint deposit = order.daiAmmount.div(2);
       require(DAI.balanceOf(msg.sender) > deposit, ERROR_INSUFFICIENT_FUNDS);
       DAI.transferFrom(msg.sender, address(this), deposit);
-      order.buyerPaid = true;
+      globalOrders[_orderId].buyerPaid = true;
     }
 
     if (order.seller == msg.sender){
       uint deposit2 = order.antAmmount.div(2);
       require(ANT.balanceOf(msg.sender) > deposit2, ERROR_INSUFFICIENT_FUNDS);
       ANT.transferFrom(msg.sender, address(this), deposit2);
-      order.sellerPaid = true;
+      globalOrders[_orderId].sellerPaid = true;
     }
   }
 

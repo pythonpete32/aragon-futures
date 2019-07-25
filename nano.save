@@ -1,0 +1,8 @@
+console.log(t[0], t[1], web3.utils.toDecimal(t[2]));
+
+let b = await AragonFuturesExchange.deployed()
+
+t = await b.stageTime()
+t = await b.stageTime()
+
+let t = () => {
