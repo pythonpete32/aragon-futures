@@ -57,8 +57,8 @@ contract AragonFuturesExchange {
 	ANT = ERC20(0x0D5263B7969144a852D58505602f630f9b20239D); // rinkeby 0x0D5263B7969144a852D58505602f630f9b20239D // rpc 0x370587127bBC6B15a928cFc3916295Eb7940A9BF
 	DAI = ERC20(0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924); // rinkeby 0x0527E400502d0CB4f214dd0D2F2a323fc88Ff924 // rpc 0xA16Dca8E28e8054C766A9D21c967C6ee6D822964
     startTime = now;
-    endTime = startTime + (24 hours);  // <-- use args after testing
-    closeTime = endTime + (24 hours);  // <-- use args after testing
+    endTime = startTime + _end;  // <-- use args after testing
+    closeTime = endTime + _close;  // <-- use args after testing
     nextOrderId = 0;
 
   }
@@ -69,7 +69,7 @@ contract AragonFuturesExchange {
   /*
   * @notice returns the state of the exchange (open, settling, closed) and the time left
   */
-  function stageTime() external view returns (string memory, string memory, int) {
+  function stageTime() external view returns (string memory stg, string memory isFin, int tme) {
     string memory stage;
     string memory isFinished;
     int time;
@@ -98,13 +98,14 @@ contract AragonFuturesExchange {
 
   /*
   *  @notice user can create a buy order, 50% of this deposited as collatoral.
-  *  @param _buyAmmount is the ammount of ANT user wants to buys
+  *  @param _buyAmmount is the ammount of ANT user wants to buys, in whole ANT units
   *  @param _rate is the ammount of DAI the buyer wants to pay for 1 ANT
   */
-  function createBuyOrder(uint _buyAmmount, uint _rate) external payable hasEnoughDAI(_buyAmmount.mul(_rate).div(2)) {
+  function createBuyOrder(uint _buyAmmount, uint _rate) external hasEnoughDAI(_buyAmmount.mul(_rate).div(2)) {
     require(now < endTime, ERROR_TRADING_HAS_STOPPED);
 
-    uint deposit = _buyAmmount.mul(_rate).div(2);
+    uint buyAmmount = _buyAmmount.mul(10**18);
+    uint deposit = buyAmmount.mul(_rate).div(2);
     DAI.transferFrom(msg.sender, address(this), deposit);
 
     Order memory newOrder = Order({
@@ -112,14 +113,14 @@ contract AragonFuturesExchange {
       state: State.OPEN,
       buyer: msg.sender,
       seller: 0x0000000000000000000000000000000000000000,
-      antAmmount: _buyAmmount,
-      daiAmmount: _buyAmmount.mul(_rate),
+      antAmmount: buyAmmount,
+      daiAmmount: buyAmmount.mul(_rate),
       buyerPaid: false,
       sellerPaid: false
     });
 
     globalOrders[nextOrderId] = newOrder;
-    emit CreateBuyOrder(nextOrderId, msg.sender, _buyAmmount, _buyAmmount.mul(_rate));
+    emit CreateBuyOrder(nextOrderId, msg.sender, buyAmmount, buyAmmount.mul(_rate));
     nextOrderId++;
   }
 
@@ -128,10 +129,11 @@ contract AragonFuturesExchange {
   *  @param _sellAmount is the ammount of ANT user wants to sell
   *  @param _rate is the ammount of DAI the buyer wants to recieve for 1 ANT
   */
-  function createSellOrder(uint _sellAmmount, uint _rate) external payable hasEnoughANT(_sellAmmount.div(2)) {
+  function createSellOrder(uint _sellAmmount, uint _rate) external hasEnoughANT(_sellAmmount.div(2)) {
     require(now < endTime, ERROR_TRADING_HAS_STOPPED);
 
-    uint deposit = _sellAmmount.div(2);
+    uint sellAmmount = _sellAmmount.mul(10**18);
+    uint deposit = sellAmmount.div(2);
     ANT.transferFrom(msg.sender, address(this), deposit);
 
     Order memory newOrder = Order({
@@ -139,14 +141,14 @@ contract AragonFuturesExchange {
       state: State.OPEN,
       buyer: 0x0000000000000000000000000000000000000000,
       seller: msg.sender,
-      antAmmount: _sellAmmount,
-      daiAmmount: _sellAmmount.mul(_rate),
+      antAmmount: sellAmmount,
+      daiAmmount: sellAmmount.mul(_rate),
       buyerPaid: false,
       sellerPaid: false
     });
 
     globalOrders[nextOrderId] = newOrder;
-    emit CreateSellOrder(nextOrderId, msg.sender, _sellAmmount.mul(_rate), _sellAmmount);
+    emit CreateSellOrder(nextOrderId, msg.sender, sellAmmount.mul(_rate), sellAmmount);
     nextOrderId++;
   }
 
@@ -157,7 +159,6 @@ contract AragonFuturesExchange {
   function fillBuyOrder
     (uint _orderId)
     external
-    payable
     timedTransition(_orderId)
     atState(_orderId, State.OPEN)
     transitionState(_orderId)
@@ -177,7 +178,6 @@ contract AragonFuturesExchange {
   function fillSellOrder
     (uint _orderId)
     external
-    payable
     timedTransition(_orderId)
     atState(_orderId, State.OPEN)
     transitionState(_orderId)
@@ -239,7 +239,6 @@ contract AragonFuturesExchange {
   function settleOrder
     (uint _orderId)
     external
-    payable
     timedTransition(_orderId)
     atState(_orderId, State.SETTLEMENT)
   {
@@ -268,7 +267,6 @@ contract AragonFuturesExchange {
   function withdrawBuyerPurchase
     (uint _orderId)
     external
-    payable
     timedTransition(_orderId)
     atState(_orderId, State.CLOSED)
   {
@@ -306,7 +304,6 @@ contract AragonFuturesExchange {
   function withdrawSellerPurchase
     (uint _orderId)
     external
-    payable
     timedTransition(_orderId)
     atState(_orderId, State.CLOSED)
   {
@@ -341,7 +338,7 @@ contract AragonFuturesExchange {
   * @notice the user can withdraw their deposit after canceling an order
   * @param _orderId the id of the order to clam deposit back against
   */
-  function withdrawDeposit(uint _orderId) external payable atState(_orderId, State.CANCELED){
+  function withdrawDeposit(uint _orderId) external atState(_orderId, State.CANCELED){
     Order memory order = globalOrders[_orderId];
     require(order.buyer == msg.sender || order.seller == msg.sender, ERROR_YOU_DO_NOT_OWN_THE_ORDER);
 
