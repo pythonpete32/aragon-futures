@@ -9,7 +9,7 @@ contract AragonFuturesExchange {
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
 
-  string private constant ERROR_ORDER_DOSE_NOT_EXIST = "ORDER_DOSE_NOT_EXIST";
+  string private constant ERROR_ORDER_DOES_NOT_EXIST = "ORDER_DOES_NOT_EXIST";
   string private constant ERROR_INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS";
   string private constant ERROR_CANNOT_CALL_THIS_FUNCTION_IN_THIS_STATE = "CANNOT_CALL_THIS_FUNCTION_IN_THIS_STATE";
   string private constant ERROR_TRADING_HAS_STOPPED = "TRADING_HAS_STOPPED";
